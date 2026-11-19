@@ -43,19 +43,19 @@ Add `data-dragon-perch` to specific page elements to give the dragon somewhere t
 
 All options are optional. Unknown keys, inherited configuration objects, invalid selectors, non-finite numbers and invalid enum/boolean values are rejected. Finite numeric values are clamped to the documented bounds.
 
-| Option                 | Default                              | Meaning                                                                                               |
-| ---------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `root`                 | whole viewport                       | Optional `HTMLElement` containing a bounded scene. Its current bounding rectangle defines the canvas. |
-| `preset`               | `'ember'`                            | `'ember'`, `'mint'` or `'lavender'`.                                                                  |
-| `size`                 | `150`                                | Character drawing scale, `80`–`220` CSS pixels.                                                       |
-| `speed`                | `0.8`                                | Behaviour speed, `0.25`–`1.5`.                                                                        |
-| `surfaces`             | `'h1,h2,button,[data-dragon-perch]'` | CSS selector for real perches. Fixed/sticky elements and descendants are excluded.                    |
-| `hatchOnStart`         | `true`                               | Show the brief egg introduction; `false` starts already hatched.                                      |
-| `interaction`          | `true`                               | Tapping near the dragon wakes it. Form controls, links and buttons are ignored.                       |
-| `sparks`               | `true`                               | Show small decorative ember particles during sneezes.                                                 |
-| `maxFPS`               | `60`                                 | `30` or `60` rendering limit.                                                                         |
-| `respectReducedMotion` | `true`                               | Start in a calm, hatched pose when the OS requests reduced motion. Explicit actions remain usable.    |
-| `zIndex`               | `100`                                | Canvas layer, `0`–`2147483000`.                                                                       |
+| Option                 | Default                              | Meaning                                                                                                                                              |
+| ---------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `root`                 | whole viewport                       | Optional `HTMLElement` containing a bounded scene. Positioned and transformed roots use a native absolute canvas; other roots use viewport geometry. |
+| `preset`               | `'ember'`                            | `'ember'`, `'mint'` or `'lavender'`.                                                                                                                 |
+| `size`                 | `150`                                | Character drawing scale, `80`–`220` CSS pixels.                                                                                                      |
+| `speed`                | `0.8`                                | Behaviour speed, `0.25`–`1.5`.                                                                                                                       |
+| `surfaces`             | `'h1,h2,button,[data-dragon-perch]'` | CSS selector for real perches. Fixed/sticky elements and descendants are excluded.                                                                   |
+| `hatchOnStart`         | `true`                               | Show the brief egg introduction; `false` starts already hatched.                                                                                     |
+| `interaction`          | `true`                               | Tapping near the dragon wakes it. Form controls, links and buttons are ignored.                                                                      |
+| `sparks`               | `true`                               | Show small decorative ember particles during sneezes.                                                                                                |
+| `maxFPS`               | `60`                                 | `30` or `60` rendering limit.                                                                                                                        |
+| `respectReducedMotion` | `true`                               | Start in a calm, hatched pose when the OS requests reduced motion. Explicit actions remain usable.                                                   |
+| `zIndex`               | `100`                                | Canvas layer, `0`–`2147483000`.                                                                                                                      |
 
 For a contained scene:
 
@@ -74,7 +74,7 @@ const dragon = createPocketDragon({
 });
 ```
 
-The default whole-page overlay follows current viewport geometry. Scrolling updates the anchored pose atomically, including nested scrollers, so a paused creature remains attached to its perch. Use regular, visible layout elements with enough horizontal room; highly transformed 3D containers or cross-document surfaces are not supported. A fallback ground position is used when no suitable perch is visible.
+Positioned or transformed bounded roots share native layout and 2D affine coordinates with their canvas, so scrolling and transforms remain synchronised without relying on callback timing. The default whole-page overlay follows current viewport geometry. Scrolling updates the anchored pose atomically, including nested scrollers, so a paused creature remains attached to its perch. Use regular, visible layout elements with enough horizontal room; 3D perspective containers or cross-document surfaces are not supported. A fallback ground position is used when no suitable perch is visible.
 
 ## Controller
 

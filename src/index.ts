@@ -1,3 +1,4 @@
+import { paintedQuad, toLocal } from "./geometry.js";
 import { configure } from "./config.js";
 import { DragonModel, type Perch } from "./model.js";
 import { renderDragon, renderFood } from "./render.js";
@@ -62,6 +63,9 @@ class Dragon implements PocketDragonController {
   private dirty = true;
   private perches: Perch[] = [];
   private anchored: Element | null = null;
+  private perchElements = new Map<string, HTMLElement>();
+  private elementIds = new WeakMap<Element, string>();
+  private elementSerial = 0;
   private hidden = false;
   private visible = true;
   private nextFlight = 11;
@@ -133,17 +137,13 @@ class Dragon implements PocketDragonController {
       );
       this.io.observe(config.root);
     }
-    this.listen(
-      document,
-      "scroll",
-      () => {
-        this.dirty = true;
-        this.positionCanvas();
-        this.measure();
-        this.draw();
-      },
-      true,
-    );
+    const onScroll = () => this.syncGeometry();
+    // WebKit's native window scroll event does not always traverse Document.
+    // Listen to both targets, plus captured nested scroll containers.
+    this.listen(document, "scroll", onScroll, true);
+    this.listen(window, "scroll", onScroll, true);
+    if (window.visualViewport)
+      this.listen(window.visualViewport, "scroll", onScroll);
     this.listen(window, "resize", () => {
       this.dirty = true;
       this.wakeLoop();
@@ -173,9 +173,7 @@ class Dragon implements PocketDragonController {
           )
         )
           return;
-        const r = this.canvas.getBoundingClientRect(),
-          x = e.clientX - r.left,
-          y = e.clientY - r.top;
+        const { x, y } = this.local({ x: e.clientX, y: e.clientY });
         if (
           Math.hypot(
             x - this.model.x,
@@ -206,23 +204,33 @@ class Dragon implements PocketDragonController {
     this.cleanups.push(() => target.removeEventListener(name, fn, { capture }));
   }
   private positionCanvas() {
-    const r = this.cfg.root?.getBoundingClientRect();
-    const w = r?.width ?? innerWidth,
-      h = r?.height ?? innerHeight;
-    if (r) {
-      Object.assign(this.canvas.style, {
-        left: r.left + "px",
-        top: r.top + "px",
-        width: w + "px",
-        height: h + "px",
-      });
-    } else
-      Object.assign(this.canvas.style, {
-        left: "0px",
-        top: "0px",
-        width: innerWidth + "px",
-        height: innerHeight + "px",
-      });
+    const root = this.cfg.root,
+      r = root?.getBoundingClientRect();
+    const style = root ? getComputedStyle(root) : undefined;
+    const native =
+      !!root &&
+      (style?.position !== "static" ||
+        style.transform !== "none" ||
+        style.perspective !== "none" ||
+        style.translate !== "none" ||
+        style.rotate !== "none" ||
+        style.scale !== "none" ||
+        style.willChange.includes("transform") ||
+        ["paint", "layout", "strict", "content"].some((value) =>
+          style.contain.includes(value),
+        ));
+    const w = Math.max(1, native ? root.clientWidth : (r?.width ?? innerWidth));
+    const h = Math.max(
+      1,
+      native ? root.clientHeight : (r?.height ?? innerHeight),
+    );
+    Object.assign(this.canvas.style, {
+      position: native ? "absolute" : "fixed",
+      left: (native ? 0 : (r?.left ?? 0)) + "px",
+      top: (native ? 0 : (r?.top ?? 0)) + "px",
+      width: w + "px",
+      height: h + "px",
+    });
     const dpr = Math.min(devicePixelRatio || 1, 2);
     if (
       w !== this.width ||
@@ -237,10 +245,25 @@ class Dragon implements PocketDragonController {
       this.dirty = true;
     }
   }
+  private local(point: { x: number; y: number }) {
+    return toLocal(
+      point,
+      paintedQuad(this.canvas, this.width, this.height),
+      this.width,
+      this.height,
+    );
+  }
+  private syncGeometry() {
+    if (this.destroyed) return;
+    this.dirty = true;
+    this.positionCanvas();
+    this.measure();
+    this.draw();
+  }
   private moving(el: Element) {
     for (
       let e: Element | null = el;
-      e && e !== document.documentElement;
+      e && e !== document.documentElement && e !== this.cfg.root;
       e = e.parentElement
     ) {
       const s = getComputedStyle(e);
@@ -251,37 +274,54 @@ class Dragon implements PocketDragonController {
   private measure() {
     if (!this.dirty) return;
     this.dirty = false;
-    const r = this.canvas.getBoundingClientRect();
     this.perches = [];
+    this.perchElements.clear();
+    const r = this.canvas.getBoundingClientRect();
     const elements = (this.cfg.root ?? document).querySelectorAll(
       this.cfg.surfaces,
     );
-    let index = 0;
+    const canvasQuad = paintedQuad(this.canvas, this.width, this.height);
     for (const el of elements) {
-      if (el === this.canvas || this.moving(el)) continue;
+      if (!(el instanceof HTMLElement) || el === this.canvas || this.moving(el))
+        continue;
       const style = getComputedStyle(el);
       if (style.visibility === "hidden" || style.display === "none") continue;
       const b = el.getBoundingClientRect();
-      if (b.width < 60 || b.height < 8 || b.bottom < r.top || b.top > r.bottom)
+      const visible =
+        b.bottom >= r.top &&
+        b.top <= r.bottom &&
+        b.right >= r.left &&
+        b.left <= r.right;
+      if (
+        el.offsetWidth < 60 ||
+        el.offsetHeight < 8 ||
+        (!visible && el !== this.anchored)
+      )
         continue;
-      const left = Math.max(65, b.left - r.left),
-        right = Math.min(this.width - 65, b.right - r.left);
-      if (right < left) continue;
-      const p = {
-        x: left + (right - left) * 0.66,
-        y: b.top - r.top + 2,
-        left,
-        right,
-        id: el.id || "perch-" + index++,
-      };
-      this.perches.push(p);
+      const quad = paintedQuad(el);
+      const start = toLocal(quad.p1, canvasQuad, this.width, this.height),
+        end = toLocal(quad.p2, canvasQuad, this.width, this.height);
+      const left = Math.min(start.x, end.x),
+        right = Math.max(start.x, end.x);
+      const x = start.x + (end.x - start.x) * 0.66,
+        y = start.y + (end.y - start.y) * 0.66 + 2;
+      let id = this.elementIds.get(el);
+      if (!id) {
+        id = "dragon-perch-" + ++this.elementSerial;
+        this.elementIds.set(el, id);
+      }
+      const p = { x, y, left, right, id };
+      this.perchElements.set(id, el);
+      if (
+        visible &&
+        x >= this.cfg.size * 0.3 &&
+        x <= this.width - this.cfg.size * 0.3
+      )
+        this.perches.push(p);
       if (el === this.anchored) this.model.syncAnchor(p);
     }
     if (this.anchored && !this.anchored.isConnected) this.anchored = null;
-    if (!this.model.anchor) {
-      const p = this.fallback();
-      this.model.place(p);
-    }
+    if (!this.model.anchor) this.model.place(this.fallback());
   }
   private fallback(): Perch {
     return {
@@ -301,19 +341,7 @@ class Dragon implements PocketDragonController {
     this.anchored = this.elementFor(p);
   }
   private elementFor(p: Perch): Element | null {
-    if (p.id === "ground") return null;
-    const roots = this.cfg.root ?? document;
-    for (const el of roots.querySelectorAll(this.cfg.surfaces)) {
-      const b = el.getBoundingClientRect(),
-        r = this.canvas.getBoundingClientRect();
-      if (
-        Math.abs(b.top - r.top + 2 - p.y) < 2 &&
-        p.x >= b.left - r.left &&
-        p.x <= b.right - r.left
-      )
-        return el;
-    }
-    return null;
+    return this.perchElements.get(p.id) ?? null;
   }
   private wakeLoop() {
     if (
@@ -433,12 +461,12 @@ class Dragon implements PocketDragonController {
       (y !== undefined && !Number.isFinite(y))
     )
       throw new TypeError("Feed coordinates must be finite");
-    const r = this.canvas.getBoundingClientRect();
+    const point = this.local({ x: x ?? 0, y: y ?? 0 });
     const localx =
       x === undefined
         ? this.model.x + this.model.direction * this.cfg.size * 0.65
-        : x - r.left;
-    const localy = y === undefined ? this.model.y : y - r.top;
+        : point.x;
+    const localy = y === undefined ? this.model.y : point.y;
     this.model.feed(
       Math.max(
         this.cfg.size * 0.4,
@@ -491,6 +519,7 @@ class Dragon implements PocketDragonController {
     this.wakeLoop();
   }
   getState(): DragonState {
+    if (!this.destroyed) this.syncGeometry();
     return {
       ready: !this.destroyed,
       paused: this.paused,

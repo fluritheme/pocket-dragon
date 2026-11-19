@@ -66,7 +66,12 @@ test("bounded scene follows fast native scrolling with no drift", async ({
   });
   for (const y of [250, 20, 350, 70, 400, 0]) {
     await page.evaluate((y) => scrollTo(0, y), y);
-    await page.waitForTimeout(20);
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
     const after = await page.evaluate(() => {
       const c = document
         .querySelector("canvas[data-fluri-dragon]")!
@@ -93,16 +98,55 @@ test("document overlay anchors to a real ledge through scrolling", async ({
     });
     window.dragon.pause();
   });
-  const before = await page.evaluate(() => ({
-    y: window.dragon.getState().y,
-    top: document.querySelector("#first-perch")!.getBoundingClientRect().top,
-  }));
+  const before = await page.evaluate(() => {
+    const c = document.querySelector<HTMLCanvasElement>(
+      "canvas[data-fluri-dragon]",
+    )!;
+    const data = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
+    let paintedTop = 0;
+    for (let i = 3; i < data.length; i += 4)
+      if (data[i]! > 20) {
+        paintedTop =
+          Math.floor((i - 3) / 4 / c.width) /
+          (devicePixelRatio > 2 ? 2 : devicePixelRatio);
+        break;
+      }
+    return {
+      y: window.dragon.getState().y,
+      paintedTop,
+      top: document.querySelector("#first-perch")!.getBoundingClientRect().top,
+    };
+  });
   await page.evaluate(() => scrollBy(0, 150));
-  await page.waitForTimeout(100);
-  const after = await page.evaluate(() => ({
-    y: window.dragon.getState().y,
-    top: document.querySelector("#first-perch")!.getBoundingClientRect().top,
-  }));
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  const after = await page.evaluate(() => {
+    // Read painted pixels BEFORE getState can synchronise geometry itself.
+    const c = document.querySelector<HTMLCanvasElement>(
+      "canvas[data-fluri-dragon]",
+    )!;
+    const data = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
+    let paintedTop = 0;
+    for (let i = 3; i < data.length; i += 4)
+      if (data[i]! > 20) {
+        paintedTop =
+          Math.floor((i - 3) / 4 / c.width) /
+          (devicePixelRatio > 2 ? 2 : devicePixelRatio);
+        break;
+      }
+    return {
+      y: window.dragon.getState().y,
+      paintedTop,
+      top: document.querySelector("#first-perch")!.getBoundingClientRect().top,
+    };
+  });
+  expect(
+    Math.abs(after.paintedTop - before.paintedTop - (after.top - before.top)),
+  ).toBeLessThan(1);
   expect(Math.abs(after.y - before.y - (after.top - before.top))).toBeLessThan(
     1,
   );
@@ -155,4 +199,106 @@ test("reduced motion begins in a calm visible pose and viewport remains usable",
     "pointer-events",
     "none",
   );
+});
+
+test("a transformed positioned root keeps native canvas and perches in the same coordinate space", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    window.dragon.wake();
+    window.dragon.pause();
+    const root = document.querySelector<HTMLElement>("#habitat")!;
+    root.style.transformOrigin = "top left";
+    root.style.transform = "translate(12px, 18px) rotate(4deg) scale(.82)";
+  });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  const before = await page.evaluate(() => {
+    const state = window.dragon.getState(),
+      canvas = document.querySelector<HTMLCanvasElement>(
+        "canvas[data-fluri-dragon]",
+      )!,
+      root = document.querySelector("#habitat")!.getBoundingClientRect(),
+      c = canvas.getBoundingClientRect();
+    return {
+      x: state.x,
+      y: state.y,
+      age: state.age,
+      relativeTop: c.top - root.top,
+      relativeLeft: c.left - root.left,
+      position: getComputedStyle(canvas).position,
+    };
+  });
+  expect(before.position).toBe("absolute");
+  for (const y of [250, 10, 350, 80, 0]) {
+    await page.evaluate((y) => scrollTo(0, y), y);
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+    const after = await page.evaluate(() => {
+      const state = window.dragon.getState(),
+        c = document
+          .querySelector("canvas[data-fluri-dragon]")!
+          .getBoundingClientRect(),
+        r = document.querySelector("#habitat")!.getBoundingClientRect();
+      return {
+        x: state.x,
+        y: state.y,
+        age: state.age,
+        relativeTop: c.top - r.top,
+        relativeLeft: c.left - r.left,
+      };
+    });
+    expect(Math.abs(after.x - before.x)).toBeLessThan(1);
+    expect(Math.abs(after.y - before.y)).toBeLessThan(1);
+    expect(Math.abs(after.relativeTop - before.relativeTop)).toBeLessThan(1);
+    expect(Math.abs(after.relativeLeft - before.relativeLeft)).toBeLessThan(1);
+    expect(after.age).toBe(before.age);
+  }
+});
+
+test("paused geometry reads and native scroll queue no animation frames", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    window.dragon.pause();
+    const original = window.requestAnimationFrame;
+    Object.assign(window, {
+      __dragonRAFCount: 0,
+      __restoreDragonRAF: () => {
+        window.requestAnimationFrame = original;
+      },
+    });
+    window.requestAnimationFrame = (fn) => {
+      const state = window as unknown as { __dragonRAFCount: number };
+      state.__dragonRAFCount++;
+      return original(fn);
+    };
+  });
+  const age = await page.evaluate(() => window.dragon.getState().age);
+  await page.evaluate(() => {
+    scrollTo(0, 180);
+    window.dragon.getState();
+    scrollTo(0, 20);
+    window.dragon.getState();
+  });
+  await page.waitForTimeout(160);
+  const state = await page.evaluate(() => {
+    const w = window as unknown as {
+      __dragonRAFCount: number;
+      __restoreDragonRAF: () => void;
+    };
+    const count = w.__dragonRAFCount;
+    w.__restoreDragonRAF();
+    return { count, age: window.dragon.getState().age };
+  });
+  expect(state.count).toBe(0);
+  expect(state.age).toBe(age);
 });
