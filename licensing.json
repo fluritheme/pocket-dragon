@@ -46,6 +46,9 @@
     },
     "@fluritheme/claw-machine": {
       "firstCommercial": "0.1.0"
+    },
+    "@fluritheme/pocket-dragon": {
+      "firstCommercial": "0.1.0"
     }
   }
 }
