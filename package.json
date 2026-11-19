@@ -1,0 +1,74 @@
+{
+  "name": "@fluritheme/pocket-dragon",
+  "version": "0.1.0",
+  "description": "An original animated dragon companion for websites: hatch an egg, explore real page surfaces, feed, fly, sneeze tiny embers and curl up to sleep.",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://fluri.xyz/",
+  "author": {
+    "name": "Franti\u0161ek Gejdo\u0161",
+    "url": "https://fluri.xyz/founder/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fluritheme/pocket-dragon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fluritheme/pocket-dragon/issues"
+  },
+  "keywords": [
+    "dragon",
+    "website-pet",
+    "animated-companion",
+    "canvas",
+    "interactive",
+    "website-theme",
+    "typescript",
+    "fluri"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "assets",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "LICENSE-MIT-LEGACY",
+    "LICENSING.md",
+    "licensing.json",
+    "THIRD-PARTY-NOTICES.txt"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5332",
+    "build": "tsc -p tsconfig.build.json && node scripts/bundle.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "release:check": "node scripts/release-check.mjs",
+    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm test:browser && pnpm format:check && pnpm release:check",
+    "prepublishOnly": "node scripts/check-licensing.mjs && pnpm build && pnpm release:check"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@playwright/test": "1.64.1",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "vite": "8.3.6",
+    "vitest": "5.1.0",
+    "esbuild": "0.28.2"
+  }
+}

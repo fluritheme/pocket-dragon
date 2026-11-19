@@ -1,0 +1,4 @@
+Pocket Dragon's runtime and procedural creature artwork are original Fluri work.
+This package has no third-party runtime dependencies or external assets.
+Development tools retain their respective licences and are not distributed as part of the theme runtime.
+See LICENSE for the Fluri commercial terms and LICENSE-MIT-LEGACY for historical boundaries.

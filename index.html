@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Pocket Dragon / Fluri</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f8eedc;
+        color: #35281f;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      nav {
+        padding: 30px 5%;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+      }
+      .masthead {
+        border-top: 1px solid #35281f35;
+        margin: 0 5%;
+        padding: 45px 0 20px;
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 30px;
+      }
+      h1 {
+        font-size: clamp(65px, 12vw, 170px);
+        letter-spacing: -0.085em;
+        line-height: 0.9;
+        margin: 0;
+        font-weight: 800;
+      }
+      h1 em {
+        font-family: Georgia, serif;
+        color: #bc5633;
+        font-weight: 400;
+      }
+      .intro {
+        max-width: 300px;
+        line-height: 1.6;
+        font-size: 16px;
+        margin: 0 0 8px;
+      }
+      .stage {
+        position: relative;
+        isolation: isolate;
+        margin: 35px 5% 0;
+        height: 520px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #d8764e;
+        background-image: radial-gradient(
+          ellipse at 70% 25%,
+          #f7b482,
+          transparent 60%
+        );
+        border: 1px solid #a64d2f;
+        box-shadow: 0 18px 50px #77452720;
+      }
+      .orbit {
+        position: absolute;
+        inset: 30px 10%;
+        border: 1px solid #ffe3ba44;
+        border-radius: 50%;
+        transform: rotate(-15deg);
+      }
+      .word {
+        position: absolute;
+        left: 7%;
+        top: 35px;
+        font-size: clamp(70px, 13vw, 150px);
+        font-weight: 800;
+        letter-spacing: -0.08em;
+        color: #7d3828;
+      }
+      .label {
+        position: absolute;
+        top: 24px;
+        right: 28px;
+        font: 11px monospace;
+        letter-spacing: 0.13em;
+        color: #6c3826;
+      }
+      .ledge {
+        position: absolute;
+        left: 8%;
+        top: 58%;
+        width: 50%;
+        padding: 25px 30px;
+        background: #f8e7c3;
+        box-shadow: 8px 10px 0 #9a492f40;
+        border: 1px solid #fef4d8;
+        border-radius: 3px;
+      }
+      .ledge h2 {
+        font: italic 33px/1.1 Georgia;
+        margin: 0 0 20px;
+      }
+      .ledge p {
+        font: 11px monospace;
+        border-top: 1px solid #49311d30;
+        padding-top: 14px;
+        margin: 0;
+      }
+      .small {
+        left: auto;
+        right: 7%;
+        top: 79%;
+        width: 29%;
+        padding: 18px 24px;
+      }
+      .small h2 {
+        font-size: 25px;
+        margin: 0;
+      }
+      .controls {
+        margin: 20px 5%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      button {
+        font: 600 13px Arial;
+        background: #35281f;
+        color: #fff1d8;
+        border: 0;
+        padding: 15px 20px;
+        border-radius: 30px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #b85535;
+      }
+      button:focus-visible {
+        outline: 3px solid #c36644;
+        outline-offset: 3px;
+      }
+      #status {
+        font: 11px monospace;
+        margin-left: auto;
+        color: #765846;
+      }
+      .foot {
+        padding: 20px 5% 80px;
+        display: flex;
+        justify-content: space-between;
+        font: 11px monospace;
+        color: #765846;
+      }
+      .more {
+        height: 600px;
+        padding: 80px 10%;
+        border-top: 1px solid #35281f20;
+      }
+      .more h2 {
+        font-size: 50px;
+        max-width: 600px;
+      }
+      .more p {
+        max-width: 500px;
+        line-height: 1.7;
+      }
+      @media (max-width: 640px) {
+        nav {
+          padding: 22px 6%;
+        }
+        .masthead {
+          display: block;
+        }
+        .intro {
+          margin-top: 25px;
+          font-size: 15px;
+          max-width: 360px;
+        }
+        .stage {
+          height: 460px;
+        }
+        .word {
+          top: 60px;
+        }
+        .ledge {
+          left: 6%;
+          top: 54%;
+          width: 65%;
+          padding: 20px;
+        }
+        .ledge h2 {
+          font-size: 27px;
+        }
+        .small {
+          left: auto;
+          right: 5%;
+          top: 82%;
+          width: 42%;
+          padding: 15px;
+        }
+        .small h2 {
+          font-size: 20px;
+        }
+        .label {
+          right: 18px;
+        }
+        .controls {
+          gap: 7px;
+        }
+        button {
+          padding: 13px 15px;
+        }
+        #status {
+          margin-left: 0;
+          width: 100%;
+          padding: 10px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <span>FLURI / LITTLE CREATURES</span
+      ><span>NO. 012 — ORIGINAL SPECIES</span>
+    </nav>
+    <header class="masthead">
+      <h1>Pocket<br /><em>dragon.</em></h1>
+      <p class="intro">
+        A small egg. A very big personality.<br />Meet your page’s new little
+        resident. A little brave. A little sleepy. Entirely yours.
+      </p>
+    </header>
+    <main>
+      <div class="stage" id="habitat">
+        <div class="orbit"></div>
+        <span class="label">A LITTLE LIFE / ALREADY HERE</span>
+        <div class="word">hello, little one.</div>
+        <article class="ledge" id="first-perch" data-dragon-perch>
+          <h2>Room for a little<br />extraordinary.</h2>
+          <p>THE PAGE IS STILL YOURS. THE LEDGE IS HIS.</p>
+        </article>
+        <article class="ledge small" data-dragon-perch>
+          <h2>Make yourself<br />at home.</h2>
+        </article>
+      </div>
+      <div class="controls">
+        <button data-action="feed">A little treat</button
+        ><button data-action="fly">Take a flight</button
+        ><button data-action="sneeze">Tiny fire sneeze</button
+        ><button data-action="sleep">Nap time</button
+        ><button data-action="hatch">Hatch again</button
+        ><span id="status" aria-live="polite">WAKING UP…</span>
+      </div>
+      <div class="foot">
+        <span>HAND-DRAWN IN CODE. FULL OF LIFE.</span><span>FLURI.XYZ ↗</span>
+      </div>
+      <section class="more">
+        <h2>Small feet.<br />Real places to land.</h2>
+        <p>
+          Scroll naturally. Your page remains usable. The dragon keeps its place
+          on the ledge while you explore. No image downloads, cookies, sound,
+          accounts or background requests.
+        </p>
+        <button id="host-link">This host button still works</button>
+      </section>
+    </main>
+    <script type="module">
+      import { createPocketDragon } from "/src/index.ts";
+      window.dragon = createPocketDragon({
+        root: document.querySelector("#habitat"),
+        surfaces: "[data-dragon-perch]",
+        size: 190,
+        speed: 1,
+      });
+      for (const b of document.querySelectorAll("[data-action]"))
+        b.addEventListener("click", () => {
+          const a = b.dataset.action;
+          if (a === "sleep" && window.dragon.getState().phase === "sleeping")
+            window.dragon.wake();
+          else window.dragon[a]();
+        });
+      setInterval(() => {
+        const s = window.dragon.getState();
+        document.querySelector("#status").textContent =
+          s.phase.toUpperCase() +
+          " / " +
+          s.fed +
+          " TREATS / " +
+          s.flights +
+          " FLIGHTS";
+      }, 300);
+      document.querySelector("#host-link").onclick = () =>
+        (document.querySelector("#host-link").textContent =
+          "Still yours. Still working.");
+    </script>
+  </body>
+</html>
