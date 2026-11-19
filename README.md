@@ -4,7 +4,7 @@ An original little dragon that makes a real home on your website. An egg cracks 
 
 [Live playground](https://fluri.xyz/pocket-dragon/) · [Fluri collection](https://fluri.xyz/) · [Commercial licence](https://fluri.xyz/legal/license/)
 
-![Pocket Dragon perched on a real page ledge](https://fluri.xyz/previews/dragon.webp)
+![Pocket Dragon running live](https://fluri.xyz/previews/dragon.gif)
 
 [Watch the actual animation](https://fluri.xyz/previews/dragon.mp4)
 
@@ -129,3 +129,7 @@ pnpm check
 ```
 
 Model tests cover transitions, consumption, bounded time steps, anchor updates and hostile configuration. Browser checks cover automatic hatching, actual feeding/flight/sleep actions, fast native scrolling, reduced motion, host interaction and teardown. `pnpm release:check` validates the archive and SSR import.
+
+## On smaller screens
+
+![Mobile preview](https://fluri.xyz/previews/dragon-mobile.png)
